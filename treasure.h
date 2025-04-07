@@ -8,8 +8,8 @@
 typedef struct {
     char treasure_id[MAX_ID_LEN];    // Unique ID
     char username[MAX_USER_LEN];     // Owner username
-    float latitude;                  // GPS latitude
-    float longitude;                 // GPS longitude
+    double latitude;                  // GPS latitude
+    double longitude;                 // GPS longitude
     char clue[MAX_CLUE_LEN];         // Clue description
     int value;                       // Treasure value
 } Treasure;
