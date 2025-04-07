@@ -1,13 +1,11 @@
-#include<stdio.h>
-#define MAX_ID_LEN 32
-#define MAX_USER_LEN 32
-#define MAX_CLUE_LEN 128
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include "treasure.h"
 
-typedef struct {
-    char treasure_id[MAX_ID_LEN];    // Unique ID
-    char username[MAX_USER_LEN];     // Owner username
-    float latitude;                  // GPS latitude
-    float longitude;                 // GPS longitude
-    char clue[MAX_CLUE_LEN];         // Clue description
-    int value;                       // Treasure value
-} Treasure;
+void add_treasure(const char* hunt_id);
+void list_treasures(const char* hunt_id);
+void view_treasure(const char* hunt_id, const char* treasure_id);
+void remove_treasure(const char* hunt_id, const char* treasure_id);
+void remove_hunt(const char* hunt_id);
+
