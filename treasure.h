@@ -6,7 +6,7 @@
 #define MAX_CLUE_LEN 128
 
 typedef struct {
-    char treasure_id[MAX_ID_LEN];    // Unique ID
+    int treasure_id;   // Unique ID
     char username[MAX_USER_LEN];     // Owner username
     double latitude;                  // GPS latitude
     double longitude;                 // GPS longitude
