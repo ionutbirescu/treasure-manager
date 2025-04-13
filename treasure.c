@@ -1,14 +1,14 @@
 #include <stdio.h>
 #include <errno.h>
 #include <string.h>
-#include <fcntl.h>     //O_WRONLY, O_CREAT, O_APPEND
-#include <sys/types.h> //off_t
-#include <unistd.h>    //lseek
-#include <sys/stat.h>  //mkdir,stat
-#include <time.h>      //%Y-%m-%d %H:%H:%S
-#include <dirent.h>    //opendir,readdir
-#include <unistd.h>    //unlink,rmdir
-#include <stdlib.h>    //atoi
+#include <fcntl.h>     
+#include <sys/types.h> 
+#include <unistd.h>    
+#include <sys/stat.h>  
+#include <time.h>      
+#include <dirent.h>   
+#include <unistd.h>    
+#include <stdlib.h>    
 #include <stdint.h>
 #include "treasure.h"
 
@@ -33,7 +33,6 @@ void log_action(const char *hunt_id, const char *action_msg)
     strftime(timebuf, sizeof(timebuf), "[%Y-%m-%d %H:%M:%S]", t);
     write(log_file, timebuf, strlen(timebuf));
 
-    // action message
     write(log_file, action_msg, strlen(action_msg));
     write(log_file, "\n", 1);
 
@@ -87,7 +86,8 @@ void add_treasure(const char *hunt_id)
     printf("value: ");
     scanf("%d", &t.value);
 
-    printf("Treasure added with ID %d in %s \n", t.treasure_id, treasurePath);
+    if(write(file, &t, sizeof(Treasure)) !=sizeof(Treasure)) perror("Failed to write treasure");
+    else printf("Treasure added with ID %d in %s \n", t.treasure_id, treasurePath);
 
     char msg[256];
     snprintf(msg, sizeof(msg), "Added treasure id %d by user %s", t.treasure_id, t.username);
@@ -96,16 +96,12 @@ void add_treasure(const char *hunt_id)
     close(file);
 }
 
-void list(const char *hunt_id)
-{
+void list(const char *hunt_id) {
     char treasure_path[256];
     snprintf(treasure_path, sizeof(treasure_path), "%s/%s", hunt_id, TREASURE_FILE);
-    // printf("Full path: %s\n", treasure_path);
 
-    // retrieve usefull file information using stat(size of hunt file, last modification)
-    struct stat st; // st-> stat buffer
-    if (stat(treasure_path, &st) == -1)
-    {
+    struct stat st;
+    if (stat(treasure_path, &st) == -1) {
         perror("Error getting file info");
         return;
     }
@@ -113,34 +109,111 @@ void list(const char *hunt_id)
     printf("Hunt: %s\n", hunt_id);
     printf("File size: %ld bytes\n", st.st_size);
 
-    // time formatting
-    char timebuf[64]; // buffer for result
-    // tm-> C struct representing a borken-down date and time in hrf
-    struct tm *modif_time = localtime(&st.st_mtime);                     // localtime-> converts timestamp to tm structure
-    strftime(timebuf, sizeof(timebuf), "%Y-%m-%d %H:%H:%S", modif_time); // formats tm str into astring
-    printf("The last time when the file was modified %s:\n ", timebuf);
+    char timebuf[64];
+    struct tm *modif_time = localtime(&st.st_mtime);
+    strftime(timebuf, sizeof(timebuf), "%Y-%m-%d %H:%M:%S", modif_time);
+    printf("🕒 Last modified: %s\n\n", timebuf);
 
-    int file = open(treasure_path, O_RDWR);
-    if (file == -1)
-    {
+    int file = open(treasure_path, O_RDONLY);
+    if (file == -1) {
         perror("Failed to open treasure file");
         return;
     }
 
     Treasure t;
-    printf("\nTreasures:\n");
-    while (read(file, &t, sizeof(Treasure)))
-    {
+    printf("💎 Treasures:\n");
+    while (read(file, &t, sizeof(Treasure)) == sizeof(Treasure)) {
         printf("ID: %d\n", t.treasure_id);
-        printf("username: %s\n", t.username);
-        printf("location: (%.2f, %.2f)\n", t.latitude, t.longitude);
-        printf("clue: %s\n", t.clue);
-        printf("value: %d\n\n", t.value);
+        printf("User: %s\n", t.username);
+        printf("Location: (%.2f, %.2f)\n", t.latitude, t.longitude);
+        printf("Clue: %s\n", t.clue);
+        printf("Value: %d\n", t.value);
+        printf("------------------------------\n");
     }
+
     close(file);
 }
 
 
+void view_treasure(const char *hunt_id, int wished_id){
+
+    char treasure_path[256];
+    snprintf(treasure_path, sizeof(treasure_path), "%s/%s" , hunt_id, TREASURE_FILE);
+
+    int file= open(treasure_path, O_RDONLY);
+    if(file==-1){
+        perror("Failed to open treasure file");
+        return;
+    }
+
+    Treasure t;
+    int found=0;
+
+    while (read(file, &t, sizeof(Treasure))==sizeof(Treasure)){
+        if(t.treasure_id==wished_id){
+            printf("ID: %d\n", t.treasure_id);
+            printf("username: %s\n",t.username);
+            printf("location: (%.2f, %.2f)\n", t.latitude, t.longitude);
+            printf("clue: %s\n",t.clue);
+            printf("value: %d\n\n",t.value);
+            found=1;
+            char msg[128];
+            snprintf(msg, sizeof(msg), "Viewed treasure ID %d", t.treasure_id);
+            log_action(hunt_id, msg);
+
+            break;
+        }
+    }
+
+    if(!found)
+        printf("The treasure with id %d does not exist in hunt %s\n",wished_id,hunt_id);
+    close(file);
+ }
+
+void load_treasures_from_file(const char *hunt_id, const char *filename) {
+    FILE *input = fopen(filename, "r");
+    if (!input) {
+        perror("Failed to open input file");
+        return;
+    }
+
+    if (mkdir(hunt_id, 0777) == -1 && errno != EEXIST) {
+        perror("mkdir failed");
+        fclose(input);
+        return;
+    }
+
+    char treasure_path[256];
+    snprintf(treasure_path, sizeof(treasure_path), "%s/%s", hunt_id, TREASURE_FILE);
+
+    int file = open(treasure_path, O_WRONLY | O_CREAT | O_APPEND, 0644);
+    if (file == -1) {
+        perror("Failed to open treasure binary file");
+        fclose(input);
+        return;
+    }
+
+    off_t filesize = lseek(file, 0, SEEK_END);
+    int current_id = (filesize == -1) ? 0 : filesize / sizeof(Treasure);
+
+    Treasure t;
+    while (fscanf(input, "%s %lf %lf \" %[^\"]\" %d", t.username, &t.latitude, &t.longitude, t.clue, &t.value) == 5) {
+        t.treasure_id = current_id++;
+
+        if (write(file, &t, sizeof(Treasure)) != sizeof(Treasure)) {
+            perror("Write failed");
+        } else {
+            printf("Loaded treasure ID %d: %s\n", t.treasure_id, t.username);
+            char msg[256];
+            snprintf(msg, sizeof(msg), "Loaded from file: ID %d by %s", t.treasure_id, t.username);
+            log_action(hunt_id, msg);
+        }
+    }
+
+    create_symlink(hunt_id);
+    close(file);
+    fclose(input);
+}
 
 
 int main(int argc, char *argv[])
