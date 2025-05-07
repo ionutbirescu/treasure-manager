@@ -44,7 +44,7 @@ void create_symlink(const char *hunt_id)
     char target[256], linkname[256];
     snprintf(target, sizeof(target), "%s/logged_hunt", hunt_id);
     snprintf(linkname, sizeof(linkname), "logged_hunt-%s", hunt_id);
-    symlink(target, linkname); // ignore errors if it already exists
+    symlink(target, linkname);
 }
 
 void add_treasure(const char *hunt_id)

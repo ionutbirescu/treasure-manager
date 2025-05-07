@@ -1,0 +1,124 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <signal.h>
+#include <unistd.h>
+#include <dirent.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+#include "treasure.h"
+
+int terminate_flag = 0;
+int process_command_flag = 0;
+
+void handle_sigusr1(int sig) {
+    process_command_flag = 1;
+}
+
+void handle_sigusr2(int sig) {
+    terminate_flag = 1;
+}
+
+int count_treasures(const char *hunt_dir) {
+    char treasure_path[256];
+    snprintf(treasure_path, sizeof(treasure_path), "%s/treasures.dat", hunt_dir);
+    int fd = open(treasure_path, O_RDONLY);
+    if (fd == -1) return 0;
+
+    struct stat st;
+    if (fstat(fd, &st) == -1) {
+        close(fd);
+        return 0;
+    }
+
+    close(fd);
+    return st.st_size / sizeof(Treasure);
+}
+
+void list_hunts() {
+    DIR *dir = opendir(".");
+    if (!dir) {
+        perror("Failed to open current directory");
+        return;
+    }
+
+    struct dirent *entry;
+    while ((entry = readdir(dir)) != NULL) {
+        if (entry->d_type == DT_DIR &&
+            strcmp(entry->d_name, ".") != 0 &&
+            strcmp(entry->d_name, "..") != 0 &&
+            strncmp(entry->d_name, "Hunt", 4) == 0) {
+
+            int count = count_treasures(entry->d_name);
+            printf("%s: %d treasures\n", entry->d_name, count);
+        }
+    }
+
+    closedir(dir);
+}
+
+void monitor_loop() {
+    while (!terminate_flag) {
+        if (process_command_flag) {
+            process_command_flag = 0;
+
+            FILE *cmd_file = fopen(".hub_cmd", "r");
+            if (!cmd_file) {
+                perror("Cannot open .hub_cmd");
+                continue;
+            }
+
+            char command[256];
+            if (fgets(command, sizeof(command), cmd_file)) {
+                command[strlen(command) - 1] = '\0'; // remove newline
+
+                if (strncmp(command, "list_hunts", 10) == 0) {
+                    list_hunts();
+                } else if (strncmp(command, "list_treasures", 14) == 0) {
+                    char hunt[128];
+                    if (sscanf(command, "list_treasures %s", hunt) == 1) {
+                        char buffer[512];
+                        snprintf(buffer, sizeof(buffer), "./treasure_manager --list %s", hunt);
+                        system(buffer);
+                    }
+                } else if (strncmp(command, "view_treasure", 13) == 0) {
+                    char hunt[128];
+                    int id;
+                    if (sscanf(command, "view_treasure %s %d", hunt, &id) == 2) {
+                        char buffer[512];
+                        snprintf(buffer, sizeof(buffer), "./treasure_manager --view %s %d", hunt, id);
+                        system(buffer);
+                    }
+                } else {
+                    printf("Unknown command in .hub_cmd: %s\n", command);
+                }
+            }
+
+            fclose(cmd_file);
+        }
+
+        usleep(100000);
+    }
+
+    printf("Monitor is shutting down...\n");
+    usleep(500000);
+    exit(0);
+}
+
+int main() {
+    struct sigaction sa1, sa2;
+
+    sa1.sa_handler = handle_sigusr1;
+    sigemptyset(&sa1.sa_mask);
+    sa1.sa_flags = 0;
+    sigaction(SIGUSR1, &sa1, NULL);
+
+    sa2.sa_handler = handle_sigusr2;
+    sigemptyset(&sa2.sa_mask);
+    sa2.sa_flags = 0;
+    sigaction(SIGUSR2, &sa2, NULL);
+
+    printf("Monitor running (PID: %d)\n", getpid());
+    monitor_loop();
+    return 0;
+}
