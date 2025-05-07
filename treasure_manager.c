@@ -112,7 +112,7 @@ void list(const char *hunt_id) {
     char timebuf[64];
     struct tm *modif_time = localtime(&st.st_mtime);
     strftime(timebuf, sizeof(timebuf), "%Y-%m-%d %H:%M:%S", modif_time);
-    printf("🕒 Last modified: %s\n\n", timebuf);
+    printf(" Last modified: %s\n\n", timebuf);
 
     int file = open(treasure_path, O_RDONLY);
     if (file == -1) {
@@ -121,7 +121,7 @@ void list(const char *hunt_id) {
     }
 
     Treasure t;
-    printf("💎 Treasures:\n");
+    printf(" Treasures:\n");
     while (read(file, &t, sizeof(Treasure)) == sizeof(Treasure)) {
         printf("ID: %d\n", t.treasure_id);
         printf("User: %s\n", t.username);

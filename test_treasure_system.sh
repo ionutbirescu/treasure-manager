@@ -1,7 +1,7 @@
 #!/bin/bash
 
 echo "[*] Compiling sources..."
-gcc -Wall -o treasure_manager treasure.c  || exit 1
+gcc -Wall -o treasure_manager treasure_manager.c  || exit 1
 gcc -Wall -o monitor monitor.c || exit 1
 gcc -Wall -o treasure_hub treasure_hub.c || exit 1
 
