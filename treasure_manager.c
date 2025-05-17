@@ -28,16 +28,16 @@ void log_action(const char *hunt_id, const char *action_msg)
     }
 
     time_t now = time(NULL);
-    struct tm *t = localtime(&now);
     char timebuf[64];
-    strftime(timebuf, sizeof(timebuf), "[%Y-%m-%d %H:%M:%S]", t);
-    write(log_file, timebuf, strlen(timebuf));
+    snprintf(timebuf, sizeof(timebuf), "[%ld] ", now);  // simple UNIX timestamp
 
+    write(log_file, timebuf, strlen(timebuf));
     write(log_file, action_msg, strlen(action_msg));
     write(log_file, "\n", 1);
 
     close(log_file);
 }
+
 
 void create_symlink(const char *hunt_id)
 {
@@ -100,28 +100,16 @@ void list(const char *hunt_id) {
     char treasure_path[256];
     snprintf(treasure_path, sizeof(treasure_path), "%s/%s", hunt_id, TREASURE_FILE);
 
-    struct stat st;
-    if (stat(treasure_path, &st) == -1) {
-        perror("Error getting file info");
-        return;
-    }
-
-    printf("Hunt: %s\n", hunt_id);
-    printf("File size: %ld bytes\n", st.st_size);
-
-    char timebuf[64];
-    struct tm *modif_time = localtime(&st.st_mtime);
-    strftime(timebuf, sizeof(timebuf), "%Y-%m-%d %H:%M:%S", modif_time);
-    printf(" Last modified: %s\n\n", timebuf);
-
     int file = open(treasure_path, O_RDONLY);
     if (file == -1) {
         perror("Failed to open treasure file");
         return;
     }
 
-    Treasure t;
+    printf("Hunt: %s\n", hunt_id);
     printf(" Treasures:\n");
+
+    Treasure t;
     while (read(file, &t, sizeof(Treasure)) == sizeof(Treasure)) {
         printf("ID: %d\n", t.treasure_id);
         printf("User: %s\n", t.username);
@@ -133,6 +121,7 @@ void list(const char *hunt_id) {
 
     close(file);
 }
+
 
 
 void view_treasure(const char *hunt_id, int id_to_find){

@@ -25,15 +25,16 @@ int count_treasures(const char *hunt_dir) {
     int fd = open(treasure_path, O_RDONLY);
     if (fd == -1) return 0;
 
-    struct stat st;
-    if (fstat(fd, &st) == -1) {
-        close(fd);
-        return 0;
+    int count = 0;
+    Treasure t;
+    while (read(fd, &t, sizeof(Treasure)) == sizeof(Treasure)) {
+        count++;
     }
 
     close(fd);
-    return st.st_size / sizeof(Treasure);
+    return count;
 }
+
 
 void list_hunts() {
     DIR *dir = opendir(".");
