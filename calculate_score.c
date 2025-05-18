@@ -4,7 +4,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include "treasure.h"
-
+#define MAX_USERNAME 256
 int main(int argc, char *argv[]) {
     if (argc != 2) {
         fprintf(stderr, "Usage: %s <hunt_id>\n", argv[0]);
@@ -24,7 +24,7 @@ int main(int argc, char *argv[]) {
         int score;
     } UserScore;
 
-    UserScore users[100]; // adjust size if needed
+    UserScore users[100]; 
     int user_count = 0;
 
     Treasure t;

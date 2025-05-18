@@ -5,6 +5,7 @@
 #include <string.h>
 #include <sys/wait.h>
 #include <fcntl.h>
+#include <dirent.h>
 
 pid_t monitor_pid = -1;
 int monitor_exited = 0;
@@ -102,15 +103,36 @@ int main()
         }
         else if (strncmp(input, "list_hunts", 10) == 0 ||
                  strncmp(input, "list_treasures", 14) == 0 ||
-                 strncmp(input, "view_treasure", 13) == 0)
+                 strncmp(input, "view_treasure", 13) == 0 ||
+                 strncmp(input,"calculate_score", 15) == 0)
         {
             if (monitor_pid == -1 || monitor_exited)
             {
                 printf("No active monitor.\n");
                 continue;
             }
+            int pipefd[2];
+            pipe(pipefd);
+
+            FILE *pf = fopen(".pipe_fd", "w");
+            if (pf) {
+                fprintf(pf, "%d\n", pipefd[1]); 
+                fclose(pf);
+            }
+
             write_command(input);
             kill(monitor_pid, SIGUSR1);
+
+            char buffer[256];
+            int bytes;
+            while ((bytes = read(pipefd[0], buffer, sizeof(buffer) - 1)) > 0) {
+                buffer[bytes] = '\0';
+                printf("%s", buffer);
+            }
+
+            close(pipefd[0]);
+            close(pipefd[1]);
+        
         }
         else
         {
