@@ -46,8 +46,9 @@ void list_hunts() {
     while ((entry = readdir(dir)) != NULL) {
         if (entry->d_type == DT_DIR &&
             strcmp(entry->d_name, ".") != 0 &&
-            strcmp(entry->d_name, "..") != 0 &&
-            strncmp(entry->d_name, "Hunt", 4) == 0) {
+            strcmp(entry->d_name, "..") != 0 && 
+            strcmp(entry->d_name,".git")!=0 &&
+            strcmp(entry->d_name,".vscode")!=0) {
             int count = count_treasures(entry->d_name);
             snprintf(buffer, sizeof(buffer), "%s: %d treasures\n", entry->d_name, count);
             write(STDOUT_FILENO, buffer, strlen(buffer));
